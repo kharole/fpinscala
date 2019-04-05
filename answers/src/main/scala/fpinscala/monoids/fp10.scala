@@ -1,3 +1,5 @@
+import fpinscala.testing.{Gen, Prop}
+
 trait Monoid[A] {
   def op(a1: A, a2: A): A
 
@@ -49,4 +51,9 @@ def endoMonoid[A]: Monoid[A => A] = new Monoid[A => A] {
 }
 
 //10.4
-//def monoidLaws[A](m: Monoid[A], gen: Gen[A]): Prop = ???
+def monoidLaws[A](m: Monoid[A], gen: Gen[A]): Prop = ???
+
+
+object MonoidsApp extends App {
+
+}
