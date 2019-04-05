@@ -1,5 +1,3 @@
-import src.main.scala.fpinscala.monoids.{Gen, Prop}
-
 trait Monoid[A] {
   def op(a1: A, a2: A): A
 
