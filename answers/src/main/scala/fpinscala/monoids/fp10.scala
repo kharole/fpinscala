@@ -60,9 +60,21 @@ object fp10 {
     forAll(gen)(a => m.op(a, m.zero) == a) &&
       forAll(listOfN(3, gen)) { case x :: y :: z :: Nil => m.op(m.op(x, y), z) == m.op(x, m.op(y, z)) }
 
+  //10.5
+  def foldMap[A, B](as: List[A], m: Monoid[B])(f: A => B): B = as.foldRight(m.zero)((a, s) => m.op(s, f(a)))
+
+  //10.6
+  def foldRight[A, B](as: List[A], z: B)(ff: (A, B) => B): B = {
+    val f = (a: A) => (b: B) => ff(a, b)
+    val mf: B => B = foldMap(as, endoMonoid[B])(f)
+    mf(z)
+  }
+
 }
 
 object MonoidsApp extends App {
   val ml = monoidLaws(intAddition, Gen.choose(-1000, 1000))
   Prop.run(ml)
+
+  println(fp10.foldRight(List(1, 2, 3), "")((i, s) => s + i))
 }
