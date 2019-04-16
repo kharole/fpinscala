@@ -1,4 +1,5 @@
 import fp10.{intAddition, monoidLaws}
+import fpinscala.parallelism.Nonblocking.Par
 import fpinscala.testing.Gen.listOfN
 import fpinscala.testing.Prop.forAll
 import fpinscala.testing.{Gen, Prop}
@@ -16,6 +17,12 @@ object fp10 {
     override def op(a1: Int, a2: Int) = a1 + a2
 
     override def zero = 0
+  }
+
+  val stringConcatenation: Monoid[String] = new Monoid[String] {
+    override def op(a1: String, a2: String) = a1 + a2
+
+    override def zero = ""
   }
 
   val intMultiplication: Monoid[Int] = new Monoid[Int] {
@@ -70,6 +77,34 @@ object fp10 {
     mf(z)
   }
 
+  //10.7
+  def foldMapV[A, B](v: IndexedSeq[A], m: Monoid[B])(f: A => B): B = v.size match {
+    case 0 =>
+      m.zero
+    case 1 =>
+      f(v.head)
+    case _ =>
+      val (v1, v2) = v.splitAt(v.size / 2)
+      val b1: B = foldMapV(v1, m)(f)
+      val b2: B = foldMapV(v2, m)(f)
+      m.op(b1, b2)
+  }
+
+  //10.8
+  import fpinscala.parallelism.Nonblocking._
+  import fpinscala.parallelism.Nonblocking.Par.toParOps
+
+  def par[A](m: Monoid[A]): Monoid[Par[A]] = new Monoid[Par[A]] {
+    override def op(pa1: Par[A], pa2: Par[A]): Par[A] = for {
+      a1 <- pa1
+      a2 <- pa2
+    } yield m.op(a1, a2)
+
+    override def zero: Par[A] = Par.unit(m.zero)
+  }
+
+  def parFoldMap[A, B](as: IndexedSeq[A], m: Monoid[B])(f: A => B): Par[B] =
+    foldMapV(as, par(m))(f andThen Par.unit)
 }
 
 object MonoidsApp extends App {
@@ -77,4 +112,11 @@ object MonoidsApp extends App {
   Prop.run(ml)
 
   println(fp10.foldRight(List(1, 2, 3), "")((i, s) => s + i))
+
+  println(fp10.foldMapV(IndexedSeq("lorem", "ipsum", "dolor", "sit"), fp10.stringConcatenation)(identity))
+
+  val pool = java.util.concurrent.Executors.newFixedThreadPool(4)
+  val zz: Par[String] = fp10.parFoldMap(IndexedSeq("lorem", "ipsum", "dolor", "sit"), fp10.stringConcatenation)(identity)
+  println(Par.run(pool)(zz))
+
 }
