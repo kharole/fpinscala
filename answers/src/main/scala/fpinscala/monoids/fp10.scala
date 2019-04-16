@@ -95,16 +95,16 @@ object fp10 {
   import fpinscala.parallelism.Nonblocking.Par.toParOps
 
   def par[A](m: Monoid[A]): Monoid[Par[A]] = new Monoid[Par[A]] {
-    override def op(pa1: Par[A], pa2: Par[A]): Par[A] = for {
-      a1 <- pa1
-      a2 <- pa2
-    } yield m.op(a1, a2)
+    override def op(pa1: Par[A], pa2: Par[A]): Par[A] = Par.map2(pa1, pa2)(m.op)
 
     override def zero: Par[A] = Par.unit(m.zero)
   }
 
   def parFoldMap[A, B](as: IndexedSeq[A], m: Monoid[B])(f: A => B): Par[B] =
-    foldMapV(as, par(m))(f andThen Par.unit)
+    Par.parMap(as)(f).flatMap { bs =>
+      foldMapV(bs, par(m))(b => Par.lazyUnit(b))
+    }
+
 }
 
 object MonoidsApp extends App {
