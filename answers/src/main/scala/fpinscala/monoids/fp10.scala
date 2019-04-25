@@ -1,4 +1,4 @@
-import fp10.{intAddition, monoidLaws}
+import fp10.{OrderedSegment, Segment, intAddition, monoidLaws}
 import fpinscala.parallelism.Nonblocking.Par
 import fpinscala.testing.Gen.listOfN
 import fpinscala.testing.Prop.forAll
@@ -105,6 +105,28 @@ object fp10 {
       foldMapV(bs, par(m))(b => Par.lazyUnit(b))
     }
 
+  //10.9
+  sealed trait Segment
+
+  case object ZeroSegment extends Segment
+
+  case class OrderedSegment(left: Int, right: Int) extends Segment
+
+  case object UnorderedSegment extends Segment
+
+  val segmentMerge: Monoid[Segment] = new Monoid[Segment] {
+    override def op(s1: Segment, s2: Segment): Segment = (s1, s2) match {
+      case (_, UnorderedSegment) => UnorderedSegment
+      case (UnorderedSegment, _) => UnorderedSegment
+      case (ZeroSegment, s) => s
+      case (s, ZeroSegment) => s
+      case (OrderedSegment(l1, r1), OrderedSegment(l2, r2)) if r1 <= l2 => OrderedSegment(l1, r2)
+      case (OrderedSegment(_, r1), OrderedSegment(l2, _)) if r1 > l2 => UnorderedSegment
+      case _ => throw new IllegalStateException
+    }
+
+    override def zero: Segment = ZeroSegment
+  }
 }
 
 object MonoidsApp extends App {
@@ -119,4 +141,9 @@ object MonoidsApp extends App {
   val zz: Par[String] = fp10.parFoldMap(IndexedSeq("lorem", "ipsum", "dolor", "sit"), fp10.stringConcatenation)(identity)
   println(Par.run(pool)(zz))
 
+  //fp10.foldMapV(IndexedSeq(), fp10.segmentMerge)()
+
+  println(fp10.foldMapV(IndexedSeq(1, 2, 5, 100), fp10.segmentMerge)(i => OrderedSegment(i, i)))
+  println(fp10.foldMapV(IndexedSeq(2, 1, 5, 100), fp10.segmentMerge)(i => OrderedSegment(i, i)))
+  println(fp10.foldMapV(IndexedSeq(), fp10.segmentMerge)(i => OrderedSegment(i, i)))
 }
