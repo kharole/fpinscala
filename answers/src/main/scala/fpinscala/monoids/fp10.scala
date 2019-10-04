@@ -1,4 +1,4 @@
-import fp10.{OrderedSegment, Segment, intAddition, monoidLaws}
+import fp10.{Monoid, OrderedSegment, Part, Segment, Stub, intAddition, monoidLaws}
 import fpinscala.parallelism.Nonblocking.Par
 import fpinscala.testing.Gen.listOfN
 import fpinscala.testing.Prop.forAll
@@ -127,6 +127,64 @@ object fp10 {
 
     override def zero: Segment = ZeroSegment
   }
+
+  object WC {
+    def apply(chars: String): WC = {
+      val a = chars.split("\\s+")
+      a.size match {
+        case 1 | 2 => Stub(chars)
+        case _ => Part(a(0), a.size - 2, a(a.size - 1))
+      }
+    }
+  }
+
+  sealed trait WC
+
+  case class Stub(chars: String) extends WC {
+
+
+  }
+
+  case class Part(lStub: String, words: Int, rStub: String) extends WC {
+    def simplifyRight: Part = {
+      val a = rStub.split("\\s+")
+      a.size match {
+        case 1 => this
+        case 2 => Part(lStub, words + 1, a(1))
+        case _ => throw new IllegalStateException()
+      }
+    }
+
+    def simplifyLeft: Part = {
+      val a = lStub.split("\\s+")
+      a.size match {
+        case 1 => this
+        case 2 => Part(a(0), words + 1, rStub)
+        case _ => throw new IllegalStateException()
+      }
+    }
+  }
+
+  //10.10
+  val wcMonoid: Monoid[WC] = new Monoid[WC] {
+    override def op(wc1: WC, wc2: WC): WC = (wc1, wc2) match {
+      case (Stub(cs1), Stub(cs2)) => WC(cs1 + cs2)
+      case (Part(ls1, w1, rs1), Stub(c2)) => Part(ls1, w1, rs1 + c2).simplifyRight
+      case (Stub(c1), Part(ls2, w2, rs2)) => Part(c1 + ls2, w2, rs2).simplifyLeft
+      case (Part(ls1, w1, ""), Part("", w2, rs2)) => Part(ls1, w1 + w2, rs2)
+      case (Part(ls1, w1, _), Part(_, w2, rs2)) => Part(ls1, w1 + w2 + 1, rs2)
+    }
+
+    override def zero: WC = Stub("")
+
+  }
+
+  //10.11
+  def wordCount(s: String): Int = {
+    ???
+  }
+
+
 }
 
 object MonoidsApp extends App {
@@ -146,4 +204,17 @@ object MonoidsApp extends App {
   println(fp10.foldMapV(IndexedSeq(1, 2, 5, 100), fp10.segmentMerge)(i => OrderedSegment(i, i)))
   println(fp10.foldMapV(IndexedSeq(2, 1, 5, 100), fp10.segmentMerge)(i => OrderedSegment(i, i)))
   println(fp10.foldMapV(IndexedSeq(), fp10.segmentMerge)(i => OrderedSegment(i, i)))
+
+  pool.shutdown();
+
+  println(fp10.wcMonoid.op(Stub("lor"), Stub("em")))
+  println(fp10.wcMonoid.op(Stub("lor"), Stub("em ip")))
+  println(fp10.wcMonoid.op(Stub("lor"), Stub("em ipsum do")))
+  println(fp10.wcMonoid.op(Part("lorem", 1, ""), Part("dolor", 1, "amet")))
+  println(fp10.wcMonoid.op(Part("lorem", 1, "do"), Stub("lor sit")))
+  println(fp10.wcMonoid.op(Stub("lor"), Part("em", 1, "do")))
+  println(fp10.wcMonoid.op(Stub("lorem ip"), Part("sum", 1, "si")))
+
+  println(fp10.wordCount("lorem ipsum dolor sit amet "))
+
 }
