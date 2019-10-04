@@ -138,12 +138,18 @@ object fp10 {
     }
   }
 
-  sealed trait WC
-
-  case class Stub(chars: String) extends WC {
-
-
+  sealed trait WC {
+    def count: Int = this match {
+      case Stub(chars) =>
+        chars.split("\\s+").size
+      case Part(lStub, words, rStub) =>
+        val l = if (lStub.isEmpty) 0 else 1
+        val r = if (rStub.isEmpty) 0 else 1
+        l + words + r
+    }
   }
+
+  case class Stub(chars: String) extends WC
 
   case class Part(lStub: String, words: Int, rStub: String) extends WC {
     def simplifyRight: Part = {
@@ -181,10 +187,19 @@ object fp10 {
 
   //10.11
   def wordCount(s: String): Int = {
-    ???
+    val wcs = rwc(s)
+    val wc = foldMapV(wcs, wcMonoid)(identity)
+    wc.count
   }
 
-
+  def rwc(s: String): Vector[WC] = {
+    if (s.size > 3) {
+      val (s1, s2) = s.splitAt(s.size / 2)
+      rwc(s1) ++ rwc(s2)
+    } else {
+      Vector(WC(s))
+    }
+  }
 }
 
 object MonoidsApp extends App {
