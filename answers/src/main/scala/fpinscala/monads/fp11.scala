@@ -23,7 +23,7 @@ object fp11 {
     //11.3
     def sequence[A](lma: List[F[A]]): F[List[A]] = {
       val z = unit(List[A]())
-      lma.foldLeft(z)((ss, ee) => flatMap(ss)(s => map(ee)(e => e :: s)))
+      lma.foldLeft(z)((s, e) => map2(e, s)(_ :: _))
     }
 
     /*
