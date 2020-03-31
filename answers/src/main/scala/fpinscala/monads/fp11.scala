@@ -34,6 +34,23 @@ object fp11 {
     */
 
     def traverse[A, B](la: List[A])(f: A => F[B]): F[List[B]] = sequence(la.map(f))
+
+    //11.4
+    def replicateM[A](n: Int, ma: F[A]): F[List[A]] = sequence(List.fill(n)(ma))
+
+    def product[A, B](ma: F[A], mb: F[B]): F[(A, B)] = map2(ma, mb)((_, _))
+
+    //11.6
+    def filterM[A](ms: List[A])(f: A => F[Boolean]): F[List[A]] = ms match {
+      case head :: tail => flatMap(f(head)) { b =>
+        if (b) {
+          map(filterM(tail)(f))(t => head :: t)
+        } else {
+          filterM(tail)(f)
+        }
+      }
+      case Nil => unit(Nil)
+    }
   }
 
   //11.1
@@ -67,6 +84,12 @@ object fp11 {
     override def flatMap[A, B](ma: datastructures.List[A])(f: A => datastructures.List[B]): datastructures.List[B] = datastructures.List.flatMap(ma)(f)
   }
 
+  val list2Monad = new Monad[List] {
+    override def unit[A](a: => A): List[A] = List(a)
+
+    override def flatMap[A, B](ma: List[A])(f: A => List[B]): List[B] = ma flatMap f
+  }
+
   //11.2
   class ZState[S] {
     type ZS[+A] = State[S, A]
@@ -78,5 +101,13 @@ object fp11 {
     }
   }
 
+}
 
+object MonoadsApp extends App {
+  //11.5 Cartesian product
+  val is = List(1, 2)
+  println(fp11.list2Monad.replicateM(2, is))
+
+  val os = Some(true)
+  println(fp11.optionMonad.replicateM(3, os))
 }
