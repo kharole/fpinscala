@@ -51,6 +51,17 @@ object fp11 {
       }
       case Nil => unit(Nil)
     }
+
+    //11.7
+    def compose[A, B, C](f: A => F[B], g: B => F[C]): A => F[C] = a => flatMap(f(a))(g(_))
+
+    //11.8
+    def flatMap2[A, B](ma: F[A])(f: A => F[B]): F[B] = {
+      val u: Unit => F[A] = _ => ma
+      val ff: Unit => F[B] = compose(u, f)
+      ff(())
+    }
+
   }
 
   //11.1
@@ -97,7 +108,7 @@ object fp11 {
     val stateMonad = new Monad[ZS] {
       override def unit[A](a: => A): ZS[A] = State.unit(a)
 
-      override def flatMap[A, B](ma: ZS[A])(f: A => ZS[B]): ZS[B] = State(ma.run).flatMap(f)
+      override def flatMap[A, B](ma: State[S, A])(f: A => State[S, B]): State[S, B] = ma.flatMap(f)
     }
   }
 
