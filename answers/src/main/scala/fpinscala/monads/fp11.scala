@@ -62,6 +62,19 @@ object fp11 {
       ff(())
     }
 
+    //11.9
+    /*
+      x.flatMap(f).flatMap(g) == x.flatMap(a => f(a).flatMap(g))
+      flatMap(flatMap(x)(f))(g) == flatMap(x)(a => flatMap(f(a))(g))
+
+      compose(compose(f, g), h) == compose(f, compose(g, h))
+      x => flatMap(compose(f, g)(x))(h)
+      x => flatMap(flatMap(f(x))(g)(h)
+      --
+      x => flatMap(f(x))(compose(g, h))
+      x => flatMap(f(x))(a => flatMap(g(a))(h))
+     */
+
   }
 
   //11.1
