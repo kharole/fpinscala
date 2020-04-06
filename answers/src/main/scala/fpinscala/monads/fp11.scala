@@ -75,6 +75,50 @@ object fp11 {
       x => flatMap(f(x))(a => flatMap(g(a))(h))
      */
 
+    //11.10
+    /*
+      compose(f, unit) == f
+      x => flatMap(f(x))(unit)
+      flatMap(x)(unit) == x
+
+      compose(unit, f) == f
+      y => flatMap(unit(y))(f)
+      flatMap(unit(y))(f) == f(y)
+     */
+
+    //11.11
+    /*
+    Some(v).flatMap(unit) == Some(v)
+    None.flatMap(unit) == None
+     */
+
+    //11.12
+    def join[A](mma: F[F[A]]): F[A] = flatMap(mma)(identity)
+
+    //11.13
+    def flatMap3[A, B](ma: F[A])(f: A => F[B]): F[B] = join(map(ma)(f))
+
+    //11.14
+    /*
+    flatMap(x)(unit) == x
+    join(map(x)(unit)) == x
+
+    flatMap(unit(y))(f) == f(y)
+    join(map(unit(y))(f)) == f(y)
+     */
+
+    //11.15
+    /*
+    Regardless if u flatMap sequentially to f then to g or flatMap par computation to f flatMap g callback receives same result
+    a followed by (b followed by c) is same parser as (a followed by b) followed by c
+     */
+
+    //11.16
+    /*
+    Gen flatMapped to unit produce same value as original Gen
+    List flatMapped to unit first wrap each element to a single element list then unwrap in back
+     */
+
   }
 
   //11.1
