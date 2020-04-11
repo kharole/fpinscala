@@ -2,6 +2,7 @@ package fpinscala.monads
 
 import fpinscala.datastructures
 import fpinscala.laziness.Stream
+import fpinscala.monads.fp11.Reader
 import fpinscala.parallelism.Nonblocking.Par
 import fpinscala.parsing.Sliceable
 import fpinscala.parsing.SliceableTypes.Parser
@@ -169,6 +170,60 @@ object fp11 {
     }
   }
 
+  //11.17
+  case class Id[A](value: A) {
+    def map[B](f: A => B): Id[B] = Id(f(value))
+
+    def flatMap[B](f: A => Id[B]): Id[B] = f(value)
+  }
+
+  val idMonad = new Monad[Id] {
+    override def unit[A](a: => A): Id[A] = Id(a)
+
+    override def flatMap[A, B](ma: Id[A])(f: A => Id[B]): Id[B] = ma flatMap f
+  }
+
+  def stateMonadLambda[S] = new Monad[({type f[x] = State[S, x]})#f] {
+    def unit[A](a: => A): State[S, A] = State(s => (a, s))
+
+    def flatMap[A, B](st: State[S, A])(f: A => State[S, B]): State[S, B] = st flatMap f
+  }
+
+  val F = stateMonadLambda[Int]
+
+  def getState[S]: State[S, S] = State(s => (s, s))
+
+  def setState[S](s: S): State[S, Unit] = State(_ => ((), s))
+
+  def zipWithIndex[A](as: List[A]): List[(Int, A)] = as.foldLeft(F.unit(List[(Int, A)]()))((acc, a) => for {
+    xs <- acc
+    n <- getState
+    _ <- setState(n + 1)
+  } yield (n, a) :: xs).run(0)._1.reverse
+
+
+  //11.18
+  // sequence - transform list of states to a state of list
+  //replicateM - repeat an element n times inside that state
+  // map2 - join two states into one merging corresponding values with function
+
+  //11.19
+  //What laws do you expect to mutually hold for getState, setState, unit, and flatMap?
+  //
+
+  //11.20
+  case class Reader[R, A](run: R => A)
+
+  object Reader {
+    def readerMonad[R] = new Monad[({type f[x] = Reader[R, x]})#f] {
+      def unit[A](a: => A): Reader[R, A] =
+        Reader(_ => a)
+
+      def flatMap[A, B](st: Reader[R, A])(f: A => Reader[R, B]): Reader[R, B] =
+        Reader((r: R) => (st.run andThen f) (r).run(r))
+    }
+  }
+
 }
 
 object MonoadsApp extends App {
@@ -178,4 +233,20 @@ object MonoadsApp extends App {
 
   val os = Some(true)
   println(fp11.optionMonad.replicateM(3, os))
+
+  val irm = fp11.Reader.readerMonad[Int]
+  val iir1: fp11.Reader[Int, Int] = fp11.Reader(_ + 1)
+  val iir2: fp11.Reader[Int, Int] = fp11.Reader(_ + 2)
+  val isr: fp11.Reader[Int, fp11.Reader[Int, String]] = fp11.Reader(i => fp11.Reader(ii => (ii + i).toString))
+
+  //join - chaining incoming param to nested reader
+  println(irm.join(isr).run(7))
+
+  //replicateM - build list of n times reader runs
+  println(irm.replicateM(7, iir1).run(5))
+
+  //sequence - builds reader that given a param apply it to original readers and gathers the results to list
+  println(irm.sequence(List(iir1, iir2)).run(5))
+
+
 }
