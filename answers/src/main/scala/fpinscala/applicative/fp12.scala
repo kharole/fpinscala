@@ -28,7 +28,31 @@ object fp12 {
 
     def product[A, B](fa: F[A], fb: F[B]): F[(A, B)] =
       map2(fa, fb)((a, b) => (a, b))
-    
+
+  }
+
+  //12.2
+  trait Applicative2[F[_]] extends Functor[F] {
+    def apply[A, B](fab: F[A => B])(fa: F[A]): F[B] =
+      map2(fab, fa)((a2b, a) => a2b(a))
+
+    def unit[A](a: => A): F[A]
+
+    def map[A, B](fa: F[A])(f: A => B): F[B] =
+      apply(unit(f))(fa)
+
+    def map2[A, B, C](fa: F[A], fb: F[B])(f: (A, B) => C): F[C] =
+      map(apply(map(fa)(a => (b: B) => (a, b)))(fb))(f.tupled)
+
+    /*    {
+          val fab: F[(A, B)] = apply(unit((a: A) => {
+            val ab: (A, B) = apply(unit((b: B) => (a, b)))(fb)
+            ab
+          }))(fa)
+
+          map(fab)(f.tupled)
+        }*/
+
   }
 
 }
