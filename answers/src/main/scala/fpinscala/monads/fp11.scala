@@ -217,7 +217,7 @@ object fp11 {
 
   val law2: State[Unit, Unit] = for {
     n <- getState
-    _ <- setState(n)9
+    _ <- setState(n)
   } yield ()
 
   //11.20
