@@ -210,11 +210,15 @@ object fp11 {
   //11.19
   //What laws do you expect to mutually hold for getState, setState, unit, and flatMap?
 
-  val s: State[Int, Unit] = setState(42)
-  val z = for {
+  val law1 = for {
     _ <- setState(42)
     n <- getState
   } yield n
+
+  val law2: State[Unit, Unit] = for {
+    n <- getState
+    _ <- setState(n)9
+  } yield ()
 
   //11.20
   case class Reader[R, A](run: R => A)
