@@ -44,18 +44,17 @@ object fp12 {
     def map2[A, B, C](fa: F[A], fb: F[B])(f: (A, B) => C): F[C] =
       map(apply(map(fa)(a => (b: B) => (a, b)))(fb))(f.tupled)
 
-    /*    {
-          val fab: F[(A, B)] = apply(unit((a: A) => {
-            val ab: (A, B) = apply(unit((b: B) => (a, b)))(fb)
-            ab
-          }))(fa)
+    //12.3
+    def map3[A, B, C, D](fa: F[A], fb: F[B], fc: F[C])(f: (A, B, C) => D): F[D] =
+      apply(apply(map(fa)(f.curried))(fb))(fc)
 
-          map(fab)(f.tupled)
-        }*/
+    def map4[A, B, C, D, E](fa: F[A], fb: F[B], fc: F[C], fd: F[D])(f: (A, B, C, D) => E): F[E] =
+      apply(apply(apply(map(fa)(f.curried))(fb))(fc))(fd)
 
   }
 
 }
 
 object ApplicativeApp extends App {
+
 }
