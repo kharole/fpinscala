@@ -57,4 +57,7 @@ object fp12 {
 
 object ApplicativeApp extends App {
 
+  //12.4 zip streams of incoming list to a stream of list of values of corresponding streams
+  def sequence[A](a: List[Stream[A]]): Stream[List[A]] = ???
+
 }
