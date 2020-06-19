@@ -1,6 +1,7 @@
 package fpinscala.applicative
 
-import fpinscala.monads.Functor
+import fpinscala.monads.{Functor, fp11}
+import fpinscala.monads.fp11.{Monad, Reader}
 
 object fp12 {
 
@@ -57,7 +58,33 @@ object fp12 {
 
 object ApplicativeApp extends App {
 
+  def goodStrings(elements: List[String], len: Int): List[String] = {
+    if (len == 0) {
+      List()
+    } else {
+      goodStrings(elements, len - 1)
+    }
+  }
+
+  println("==========")
+  println(goodStrings(List("a", "b", "c"), 2))
+  //println((0 to 25).sum)
+
   //12.4 zip streams of incoming list to a stream of list of values of corresponding streams
   def sequence[A](a: List[Stream[A]]): Stream[List[A]] = ???
+
+  //12.5
+  object EitherM {
+    def eitherMonad[E]: fp11.Monad[({type f[x] = Either[E, x]})#f] = new fp11.Monad[({type f[x] = Either[E, x]})#f] {
+
+      def unit[A](a: => A): Either[E, A] =
+        ???
+
+      def flatMap[A, B](e: Either[E, A])(f: A => Either[E, B]): Either[E, B] =
+        ???
+
+    }
+
+  }
 
 }
