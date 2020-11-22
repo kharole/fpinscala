@@ -3,6 +3,8 @@ package fpinscala.applicative
 import fpinscala.monads.{Functor, fp11}
 import fpinscala.monads.fp11.{Monad, Reader}
 
+import scala.collection.immutable
+
 object fp12 {
 
   //noinspection DuplicatedCode
@@ -87,6 +89,32 @@ object ApplicativeApp extends App {
         }
 
     }
+
+  }
+
+
+  sealed trait Validation[+E, +A]
+
+  case class Failure[E](head: E, tail: Vector[E] = Vector())
+    extends Validation[E, Nothing]
+
+  case class Success[A](a: A) extends Validation[Nothing, A]
+
+  object ValidationM {
+    def validationApplicative[E]: fp12.Applicative[({type f[x] = Validation[E, x]})#f] =
+      new fp12.Applicative[({type f[x] = Validation[E, x]})#f] {
+
+        def unit[A](a: => A): Validation[E, A] =
+          Success(a)
+
+        override def map2[A, B, C](va: Validation[E, A], vb: Validation[E, B])(f: (A, B) => C): Validation[E, C] =
+          (va, vb) match {
+            case (Success(a), Success(b)) => Success(f(a, b))
+            case (Success(_), Failure(h, t)) => Failure(h, t)
+            case (Failure(h, t), Success(_)) => Failure(h, t)
+            case (Failure(h1, t1), Failure(h2, t2)) => Failure(h1, (t1 ++ t2) :+ h2)
+          }
+      }
 
   }
 
