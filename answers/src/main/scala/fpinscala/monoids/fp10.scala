@@ -91,6 +91,7 @@ object fp10 {
   }
 
   //10.8
+
   import fpinscala.parallelism.Nonblocking._
   import fpinscala.parallelism.Nonblocking.Par.toParOps
 
@@ -200,6 +201,76 @@ object fp10 {
       Vector(WC(s))
     }
   }
+
+  trait Foldable[F[_]] {
+    def foldRight[A, B](as: F[A])(z: B)(f: (A, B) => B): B
+
+    def foldLeft[A, B](as: F[A])(z: B)(f: (B, A) => B): B
+
+    def foldMap[A, B](as: F[A])(f: A => B)(mb: Monoid[B]): B
+
+    def concatenate[A](as: F[A])(m: Monoid[A]): A = foldLeft(as)(m.zero)(m.op)
+  }
+
+  //10.12
+
+  val foldableList = new Foldable[List] {
+    override def foldLeft[A, B](as: List[A])(z: B)(f: (B, A) => B): B = as match {
+      case head :: tail => f(foldLeft(tail)(z)(f), head)
+      case Nil => z
+    }
+
+    override def foldRight[A, B](as: List[A])(z: B)(f: (A, B) => B): B = as match {
+      case head :: tail => f(head, foldRight(tail)(z)(f))
+      case Nil => z
+    }
+
+    override def foldMap[A, B](as: List[A])(f: A => B)(mb: Monoid[B]): B =
+      foldLeft(as)(mb.zero)((b, a) => mb.op(f(a), b))
+  }
+
+  val indexedSeqList = new Foldable[IndexedSeq] {
+    override def foldLeft[A, B](as: IndexedSeq[A])(z: B)(f: (B, A) => B): B = {
+      def foldLeftFrom[A, B](as: IndexedSeq[A], idx: Int)(z: B)(f: (B, A) => B): B =
+        if (idx < as.length)
+          foldLeftFrom(as, idx + 1)(f(z, as(idx)))(f)
+        else
+          z
+
+      foldLeftFrom(as, 0)(z)(f)
+    }
+
+    override def foldRight[A, B](as: IndexedSeq[A])(z: B)(f: (A, B) => B): B = {
+      def foldRightFrom[A, B](as: IndexedSeq[A], idx: Int)(z: B)(f: (A, B) => B): B =
+        if (idx > 0)
+          foldRightFrom(as, idx - 1)(f(as(idx), z))(f)
+        else
+          z
+
+      foldRightFrom(as, as.length)(z)(f)
+    }
+
+    override def foldMap[A, B](as: IndexedSeq[A])(f: A => B)(mb: Monoid[B]): B =
+      foldLeft(as)(mb.zero)((b, a) => mb.op(f(a), b))
+  }
+
+  val foldableStream = new Foldable[Stream] {
+    override def foldLeft[A, B](as: Stream[A])(z: B)(f: (B, A) => B): B = as match {
+      case cons: Stream.Cons[A] => foldLeft(cons.tail)(f(z, cons.head))(f)
+      case Stream.Empty => z
+    }
+
+    override def foldRight[A, B](as: Stream[A])(z: B)(f: (A, B) => B): B = as match {
+      case cons: Stream.Cons[A] => f(cons.head, foldRight(cons.tail)(z)(f))
+      case Stream.Empty => z
+    }
+
+    override def foldMap[A, B](as: Stream[A])(f: A => B)(mb: Monoid[B]): B =
+      foldLeft(as)(mb.zero)((b, a) => mb.op(f(a), b))
+  }
+
+
+
 }
 
 object MonoidsApp extends App {

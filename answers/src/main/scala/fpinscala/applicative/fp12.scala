@@ -32,6 +32,9 @@ object fp12 {
     def product[A, B](fa: F[A], fb: F[B]): F[(A, B)] =
       map2(fa, fb)((a, b) => (a, b))
 
+    //12.8
+    def product[G[_]](G: Applicative[G]): Applicative[({type f[x] = (F[x], G[x])})#f] =
+      ???
   }
 
   //12.2
@@ -100,6 +103,7 @@ object ApplicativeApp extends App {
 
   case class Success[A](a: A) extends Validation[Nothing, A]
 
+  //12.6
   object ValidationM {
     def validationApplicative[E]: fp12.Applicative[({type f[x] = Validation[E, x]})#f] =
       new fp12.Applicative[({type f[x] = Validation[E, x]})#f] {
@@ -117,5 +121,10 @@ object ApplicativeApp extends App {
       }
 
   }
+
+  //12.7
+  /*
+
+   */
 
 }
