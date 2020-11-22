@@ -78,10 +78,13 @@ object ApplicativeApp extends App {
     def eitherMonad[E]: fp11.Monad[({type f[x] = Either[E, x]})#f] = new fp11.Monad[({type f[x] = Either[E, x]})#f] {
 
       def unit[A](a: => A): Either[E, A] =
-        ???
+        Right(a)
 
       def flatMap[A, B](e: Either[E, A])(f: A => Either[E, B]): Either[E, B] =
-        ???
+        e match {
+          case Left(value) => Left(value)
+          case Right(value) => f(value)
+        }
 
     }
 
