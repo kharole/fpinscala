@@ -232,7 +232,7 @@ object fp10 {
       foldLeft(as)(mb.zero)((b, a) => mb.op(f(a), b))
   }
 
-  val indexedSeqList = new Foldable[IndexedSeq] {
+  val indexedSeqFoldable = new Foldable[IndexedSeq] {
     override def foldLeft[A, B](as: IndexedSeq[A])(z: B)(f: (B, A) => B): B = {
       def foldLeftFrom[A, B](as: IndexedSeq[A], idx: Int)(z: B)(f: (B, A) => B): B =
         if (idx < as.length)
@@ -323,6 +323,38 @@ object fp10 {
 
     override def op(a1: (A, B), a2: (A, B)): (A, B) = (A.op(a1._1, a2._1), B.op(a1._2, a2._2))
   }
+
+  def functionMonoid[A, B](B: Monoid[B]): Monoid[A => B] = new Monoid[A => B] {
+    override def zero: A => B = _ => B.zero
+
+    override def op(a1: A => B, a2: A => B): A => B = (a => B.op(a1(a), a2(a)))
+  }
+
+  def mapMergeMonoid[K, V](V: Monoid[V]): Monoid[Map[K, V]] = new Monoid[Map[K, V]] {
+    def zero = Map[K, V]()
+
+    def op(a: Map[K, V], b: Map[K, V]) =
+      (a.keySet ++ b.keySet).foldLeft(zero) { (acc, k) =>
+        acc.updated(k, V.op(a.getOrElse(k, V.zero),
+          b.getOrElse(k, V.zero)))
+      }
+  }
+
+  def bagMonoid[A](): Monoid[Map[A, Int]] = new Monoid[Map[A, Int]] {
+    def zero = Map[A, Int]()
+
+    def op(a: Map[A, Int], b: Map[A, Int]) =
+      (a.keySet ++ b.keySet).foldLeft(zero) { (acc, k) =>
+        acc.updated(k, a.getOrElse(k, 0) + b.getOrElse(k, 0))
+      }
+  }
+
+  //10.18
+  def bag[A](as: IndexedSeq[A]): Map[A, Int] = indexedSeqFoldable.concatenate(as.map(a => Map(a -> 1)))(bagMonoid())
+
+  def bag2[A](as: IndexedSeq[A]): Map[A, Int] =
+    foldMapV(as, mapMergeMonoid[A, Int](intAddition))((a: A) => Map(a -> 1))
+
 }
 
 object MonoidsApp extends App {
