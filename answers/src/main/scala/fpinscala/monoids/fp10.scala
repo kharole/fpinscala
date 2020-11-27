@@ -210,10 +210,13 @@ object fp10 {
     def foldMap[A, B](as: F[A])(f: A => B)(mb: Monoid[B]): B
 
     def concatenate[A](as: F[A])(m: Monoid[A]): A = foldLeft(as)(m.zero)(m.op)
+
+    //10.15
+    def toList[A](as: F[A]): List[A] = foldLeft(as)(List[A]())((acc, a) => a :: acc)
   }
 
-  //10.12
 
+  //10.12
   val foldableList = new Foldable[List] {
     override def foldLeft[A, B](as: List[A])(z: B)(f: (B, A) => B): B = as match {
       case head :: tail => f(foldLeft(tail)(z)(f), head)
@@ -297,34 +300,59 @@ object fp10 {
       foldLeft(as)(mb.zero)((b, a) => mb.op(f(a), b))
   }
 
-  object MonoidsApp extends App {
-    val ml = monoidLaws(intAddition, Gen.choose(-1000, 1000))
-    Prop.run(ml)
+  //10.14
+  val foldableOption = new Foldable[Option] {
+    override def foldRight[A, B](as: Option[A])(z: B)(f: (A, B) => B): B = as match {
+      case Some(value) => f(value, z)
+      case None => z
+    }
 
-    println(fp10.foldRight(List(1, 2, 3), "")((i, s) => s + i))
+    override def foldLeft[A, B](as: Option[A])(z: B)(f: (B, A) => B): B = as match {
+      case Some(value) => f(z, value)
+      case None => z
+    }
 
-    println(fp10.foldMapV(IndexedSeq("lorem", "ipsum", "dolor", "sit"), fp10.stringConcatenation)(identity))
-
-    val pool = java.util.concurrent.Executors.newFixedThreadPool(4)
-    val zz: Par[String] = fp10.parFoldMap(IndexedSeq("lorem", "ipsum", "dolor", "sit"), fp10.stringConcatenation)(identity)
-    println(Par.run(pool)(zz))
-
-    //fp10.foldMapV(IndexedSeq(), fp10.segmentMerge)()
-
-    println(fp10.foldMapV(IndexedSeq(1, 2, 5, 100), fp10.segmentMerge)(i => OrderedSegment(i, i)))
-    println(fp10.foldMapV(IndexedSeq(2, 1, 5, 100), fp10.segmentMerge)(i => OrderedSegment(i, i)))
-    println(fp10.foldMapV(IndexedSeq(), fp10.segmentMerge)(i => OrderedSegment(i, i)))
-
-    pool.shutdown();
-
-    println(fp10.wcMonoid.op(Stub("lor"), Stub("em")))
-    println(fp10.wcMonoid.op(Stub("lor"), Stub("em ip")))
-    println(fp10.wcMonoid.op(Stub("lor"), Stub("em ipsum do")))
-    println(fp10.wcMonoid.op(Part("lorem", 1, ""), Part("dolor", 1, "amet")))
-    println(fp10.wcMonoid.op(Part("lorem", 1, "do"), Stub("lor sit")))
-    println(fp10.wcMonoid.op(Stub("lor"), Part("em", 1, "do")))
-    println(fp10.wcMonoid.op(Stub("lorem ip"), Part("sum", 1, "si")))
-
-    println(fp10.wordCount("lorem ipsum dolor sit amet "))
+    override def foldMap[A, B](as: Option[A])(f: A => B)(mb: Monoid[B]): B =
+      foldLeft(as)(mb.zero)((b, a) => mb.op(f(a), b))
 
   }
+
+  //10.17
+  def productMonoid[A, B](A: Monoid[A], B: Monoid[B]): Monoid[(A, B)] = new Monoid[(A, B)] {
+    override def zero: (A, B) = (A.zero, B.zero)
+
+    override def op(a1: (A, B), a2: (A, B)): (A, B) = (A.op(a1._1, a2._1), B.op(a1._2, a2._2))
+  }
+}
+
+object MonoidsApp extends App {
+  val ml = monoidLaws(intAddition, Gen.choose(-1000, 1000))
+  Prop.run(ml)
+
+  println(fp10.foldRight(List(1, 2, 3), "")((i, s) => s + i))
+
+  println(fp10.foldMapV(IndexedSeq("lorem", "ipsum", "dolor", "sit"), fp10.stringConcatenation)(identity))
+
+  val pool = java.util.concurrent.Executors.newFixedThreadPool(4)
+  val zz: Par[String] = fp10.parFoldMap(IndexedSeq("lorem", "ipsum", "dolor", "sit"), fp10.stringConcatenation)(identity)
+  println(Par.run(pool)(zz))
+
+  //fp10.foldMapV(IndexedSeq(), fp10.segmentMerge)()
+
+  println(fp10.foldMapV(IndexedSeq(1, 2, 5, 100), fp10.segmentMerge)(i => OrderedSegment(i, i)))
+  println(fp10.foldMapV(IndexedSeq(2, 1, 5, 100), fp10.segmentMerge)(i => OrderedSegment(i, i)))
+  println(fp10.foldMapV(IndexedSeq(), fp10.segmentMerge)(i => OrderedSegment(i, i)))
+
+  pool.shutdown();
+
+  println(fp10.wcMonoid.op(Stub("lor"), Stub("em")))
+  println(fp10.wcMonoid.op(Stub("lor"), Stub("em ip")))
+  println(fp10.wcMonoid.op(Stub("lor"), Stub("em ipsum do")))
+  println(fp10.wcMonoid.op(Part("lorem", 1, ""), Part("dolor", 1, "amet")))
+  println(fp10.wcMonoid.op(Part("lorem", 1, "do"), Stub("lor sit")))
+  println(fp10.wcMonoid.op(Stub("lor"), Part("em", 1, "do")))
+  println(fp10.wcMonoid.op(Stub("lorem ip"), Part("sum", 1, "si")))
+
+  println(fp10.wordCount("lorem ipsum dolor sit amet "))
+
+}
