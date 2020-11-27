@@ -120,6 +120,15 @@ object fp11 {
     List flatMapped to unit first wrap each element to a single element list then unwrap in back
      */
 
+    //12.11
+    def compose[G[_]](G: Monad[G]): Monad[({type f[x] = F[G[x]]})#f] = new Monad[({type f[x] = F[G[x]]})#f] {
+      override def unit[A](a: => A): F[G[A]] =
+        Monad.this.unit(G.unit(a))
+
+      override def flatMap[A, B](ma: F[G[A]])(f: A => F[G[B]]): F[G[B]] =
+        ???
+        //Monad.this.flatMap(na => G.flatMap(na)(a => ???))
+    }
   }
 
   //11.1

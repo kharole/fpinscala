@@ -173,4 +173,11 @@ object fp12 {
           map2(a,b)(productF(f,g)) == product(map(a)(f), map(b)(g))
      */
 
+    //12.10
+    /*
+      several days or even a few weeks to think about
+      life is too short
+     */
+
   }
+}
