@@ -269,38 +269,62 @@ object fp10 {
       foldLeft(as)(mb.zero)((b, a) => mb.op(f(a), b))
   }
 
+  sealed trait Tree[+A]
 
+  case class Leaf[A](value: A) extends Tree[A]
 
-}
+  case class Branch[A](left: Tree[A], right: Tree[A]) extends Tree[A]
 
-object MonoidsApp extends App {
-  val ml = monoidLaws(intAddition, Gen.choose(-1000, 1000))
-  Prop.run(ml)
+  //10.13
+  val foldableTree = new Foldable[Tree] {
+    override def foldLeft[A, B](t: Tree[A])(z: B)(f: (B, A) => B): B = t match {
+      case Leaf(value) => f(z, value)
+      case Branch(left, right) => {
+        val lz = foldLeft(left)(z)(f)
+        foldLeft(right)(lz)(f)
+      }
+    }
 
-  println(fp10.foldRight(List(1, 2, 3), "")((i, s) => s + i))
+    override def foldRight[A, B](t: Tree[A])(z: B)(f: (A, B) => B): B = t match {
+      case Leaf(value) => f(value, z)
+      case Branch(left, right) => {
+        val rz = foldRight(right)(z)(f)
+        foldRight(left)(rz)(f)
+      }
+    }
 
-  println(fp10.foldMapV(IndexedSeq("lorem", "ipsum", "dolor", "sit"), fp10.stringConcatenation)(identity))
+    override def foldMap[A, B](as: Tree[A])(f: A => B)(mb: Monoid[B]): B =
+      foldLeft(as)(mb.zero)((b, a) => mb.op(f(a), b))
+  }
 
-  val pool = java.util.concurrent.Executors.newFixedThreadPool(4)
-  val zz: Par[String] = fp10.parFoldMap(IndexedSeq("lorem", "ipsum", "dolor", "sit"), fp10.stringConcatenation)(identity)
-  println(Par.run(pool)(zz))
+  object MonoidsApp extends App {
+    val ml = monoidLaws(intAddition, Gen.choose(-1000, 1000))
+    Prop.run(ml)
 
-  //fp10.foldMapV(IndexedSeq(), fp10.segmentMerge)()
+    println(fp10.foldRight(List(1, 2, 3), "")((i, s) => s + i))
 
-  println(fp10.foldMapV(IndexedSeq(1, 2, 5, 100), fp10.segmentMerge)(i => OrderedSegment(i, i)))
-  println(fp10.foldMapV(IndexedSeq(2, 1, 5, 100), fp10.segmentMerge)(i => OrderedSegment(i, i)))
-  println(fp10.foldMapV(IndexedSeq(), fp10.segmentMerge)(i => OrderedSegment(i, i)))
+    println(fp10.foldMapV(IndexedSeq("lorem", "ipsum", "dolor", "sit"), fp10.stringConcatenation)(identity))
 
-  pool.shutdown();
+    val pool = java.util.concurrent.Executors.newFixedThreadPool(4)
+    val zz: Par[String] = fp10.parFoldMap(IndexedSeq("lorem", "ipsum", "dolor", "sit"), fp10.stringConcatenation)(identity)
+    println(Par.run(pool)(zz))
 
-  println(fp10.wcMonoid.op(Stub("lor"), Stub("em")))
-  println(fp10.wcMonoid.op(Stub("lor"), Stub("em ip")))
-  println(fp10.wcMonoid.op(Stub("lor"), Stub("em ipsum do")))
-  println(fp10.wcMonoid.op(Part("lorem", 1, ""), Part("dolor", 1, "amet")))
-  println(fp10.wcMonoid.op(Part("lorem", 1, "do"), Stub("lor sit")))
-  println(fp10.wcMonoid.op(Stub("lor"), Part("em", 1, "do")))
-  println(fp10.wcMonoid.op(Stub("lorem ip"), Part("sum", 1, "si")))
+    //fp10.foldMapV(IndexedSeq(), fp10.segmentMerge)()
 
-  println(fp10.wordCount("lorem ipsum dolor sit amet "))
+    println(fp10.foldMapV(IndexedSeq(1, 2, 5, 100), fp10.segmentMerge)(i => OrderedSegment(i, i)))
+    println(fp10.foldMapV(IndexedSeq(2, 1, 5, 100), fp10.segmentMerge)(i => OrderedSegment(i, i)))
+    println(fp10.foldMapV(IndexedSeq(), fp10.segmentMerge)(i => OrderedSegment(i, i)))
 
-}
+    pool.shutdown();
+
+    println(fp10.wcMonoid.op(Stub("lor"), Stub("em")))
+    println(fp10.wcMonoid.op(Stub("lor"), Stub("em ip")))
+    println(fp10.wcMonoid.op(Stub("lor"), Stub("em ipsum do")))
+    println(fp10.wcMonoid.op(Part("lorem", 1, ""), Part("dolor", 1, "amet")))
+    println(fp10.wcMonoid.op(Part("lorem", 1, "do"), Stub("lor sit")))
+    println(fp10.wcMonoid.op(Stub("lor"), Part("em", 1, "do")))
+    println(fp10.wcMonoid.op(Stub("lorem ip"), Part("sum", 1, "si")))
+
+    println(fp10.wordCount("lorem ipsum dolor sit amet "))
+
+  }
