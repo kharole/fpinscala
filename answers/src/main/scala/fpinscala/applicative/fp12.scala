@@ -34,7 +34,13 @@ object fp12 {
 
     //12.8
     def product[G[_]](G: Applicative[G]): Applicative[({type f[x] = (F[x], G[x])})#f] =
-      ???
+      new Applicative[({type f[x] = (F[x], G[x])})#f] {
+        override def unit[A](a: => A): (F[A], G[A]) =
+          (Applicative.this.unit(a), G.unit(a))
+
+        override def map2[A, B, C](fa: (F[A], G[A]), fb: (F[B], G[B]))(f: (A, B) => C): (F[C], G[C]) =
+          (Applicative.this.map2(fa._1, fb._1)(f), G.map2(fa._2, fb._2)(f))
+      }
   }
 
   //12.2
