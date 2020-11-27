@@ -128,9 +128,40 @@ object ApplicativeApp extends App {
 
   }
 
+  def assoc[A, B, C](p: (A, (B, C))): ((A, B), C) =
+    p match {
+      case (a, (b, c)) => ((a, b), c)
+    }
+
   //12.7
   /*
+        monadic:
+        associative
+        x.flatMap(f).flatMap(g) == x.flatMap(a => f(a).flatMap(g))
 
+        identity:
+        flatMap(x)(unit) == x
+        flatMap(unit(y))(f) == f(y)
+
+        def map2[A,B,C](fa: F[A], fb: F[B])(f: (A, B) => C): F[C] = flatMap(fa)(a => map(fb)(b => f(a,b)))
+
+        applicative:
+        //left right identity
+        map(v)(id) == v map(map(v)(g))(f) == map(v)(f compose g)
+        map2(unit(()), fa)((_,a) => a) == fa
+        flatMap(unit(())(u => map(fa)((_,a) => a))
+        (u => map(fa)((_,a) => a))(())
+        fa
+        map2(fa, unit(()))((a,_) => a) == fa
+
+        op(a, op(b, c)) == op(op(a, b), c)
+        compose(f, op(g, h)) == compose(compose(f, g), h)
+
+        //associativity
+        product(product(fa,fb),fc) == map(product(fa, product(fb,fc)))(assoc)
+
+        //associativity
+        map2(a,b)(productF(f,g)) == product(map(a)(f), map(b)(g))
    */
 
 }
