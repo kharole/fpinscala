@@ -25,6 +25,10 @@ object fp12 {
     def traverse[A, B](as: List[A])(f: A => F[B]): F[List[B]] =
       as.foldRight(unit(List[B]()))((a, fbs) => map2(f(a), fbs)(_ :: _))
 
+    //12.12
+    def sequenceMap[K, V](ofa: Map[K, F[V]]): F[Map[K, V]] =
+      ofa.foldRight(unit(Map[K, V]()))((e, acc) => map2(e._2, acc)((x, y) => y.updated(e._1, xk)))
+
     // Using `sequence` and the `List.fill` function of the standard library:
     def replicateM[A](n: Int, ma: F[A]): F[List[A]] =
       sequence(List.fill(n)(ma))
@@ -180,4 +184,5 @@ object fp12 {
      */
 
   }
+
 }
