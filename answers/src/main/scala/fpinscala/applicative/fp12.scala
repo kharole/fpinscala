@@ -1,7 +1,6 @@
 package fpinscala.applicative
 
 import fpinscala.monads.{Functor, fp11}
-import fpinscala.monads.fp11.{Monad, Reader}
 
 import scala.collection.immutable
 
@@ -62,7 +61,17 @@ object fp12 {
 
       def sequence[G[_] : Applicative, A](fga: F[G[A]]): G[F[A]]
 
-      //= traverse(fga)(ga => ga)
+      case class Id[A](value: A)
+
+      implicit val id = new Applicative[Id] {
+        override def unit[A](a: => A): Id[A] = Id(a)
+
+        override def map2[A, B, C](fa: Id[A], fb: Id[B])(f: (A, B) => C): Id[C] = Id(f(fa.value, fb.value))
+      }
+
+      //12.14
+      def map[A, B](fa: F[A])(f: A => B): F[B] = traverse(fa)(a => Id(f(a))).value
+
     }
 
     //12.13
