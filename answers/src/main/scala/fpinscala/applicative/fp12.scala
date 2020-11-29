@@ -27,7 +27,7 @@ object fp12 {
 
     //12.12
     def sequenceMap[K, V](ofa: Map[K, F[V]]): F[Map[K, V]] =
-      ofa.foldRight(unit(Map[K, V]()))((e, acc) => map2(e._2, acc)((x, y) => y.updated(e._1, xk)))
+      ofa.foldRight(unit(Map[K, V]()))((e, acc) => map2(e._2, acc)((x, y) => y.updated(e._1, x)))
 
     // Using `sequence` and the `List.fill` function of the standard library:
     def replicateM[A](n: Int, ma: F[A]): F[List[A]] =
@@ -55,6 +55,45 @@ object fp12 {
         override def map2[A, B, C](fa: F[G[A]], fb: F[G[B]])(f: (A, B) => C): F[G[C]] =
           Applicative.this.map2(fa, fb)((ga, gb) => G.map2(ga, gb)(f))
       }
+
+    trait Traverse[F[_]] {
+      def traverse[G[_] : Applicative, A, B](fa: F[A])(f: A => G[B]): G[F[B]] =
+        ???
+
+      def sequence[G[_] : Applicative, A](fga: F[G[A]]): G[F[A]]
+
+      //= traverse(fga)(ga => ga)
+    }
+
+    //12.13
+    val listTraverse = new Traverse[List] {
+      override def sequence[G[_] : Applicative, A](fga: List[G[A]]): G[List[A]] = {
+        val ag = implicitly[Applicative[G]]
+        fga.foldLeft(ag.unit(List[A]()))((acc, ga) => ag.map2(ga, acc)(_ :: _))
+      }
+    }
+
+    val optionTraverse = new Traverse[Option] {
+      override def sequence[G[_] : Applicative, A](fga: Option[G[A]]): G[Option[A]] = {
+        fga match {
+          case Some(ga) => implicitly[Applicative[G]].map(ga)(Some(_))
+          case None => implicitly[Applicative[G]].unit(None)
+        }
+      }
+    }
+
+    case class Tree[+A](head: A, tail: List[Tree[A]])
+
+    val treeTraverse = new Traverse[Tree] {
+
+      override def sequence[G[_] : Applicative, A](fga: Tree[G[A]]): G[Tree[A]] = {
+        val ag = implicitly[Applicative[G]]
+        val head: G[A] = fga.head
+        val tail: G[List[Tree[A]]] = listTraverse.sequence(fga.tail.map(sequence(_)))
+        ag.map2(head, tail)(Tree(_, _))
+      }
+    }
+
 
     //12.2
     trait Applicative2[F[_]] extends Functor[F] {
