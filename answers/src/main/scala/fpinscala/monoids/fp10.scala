@@ -1,4 +1,6 @@
-import fp10.{Monoid, OrderedSegment, Part, Segment, Stub, intAddition, monoidLaws}
+package fpinscala.monoids
+
+import fp10._
 import fpinscala.parallelism.Nonblocking.Par
 import fpinscala.testing.Gen.listOfN
 import fpinscala.testing.Prop.forAll
@@ -92,8 +94,8 @@ object fp10 {
 
   //10.8
 
-  import fpinscala.parallelism.Nonblocking._
   import fpinscala.parallelism.Nonblocking.Par.toParOps
+  import fpinscala.parallelism.Nonblocking._
 
   def par[A](m: Monoid[A]): Monoid[Par[A]] = new Monoid[Par[A]] {
     override def op(pa1: Par[A], pa2: Par[A]): Par[A] = Par.map2(pa1, pa2)(m.op)

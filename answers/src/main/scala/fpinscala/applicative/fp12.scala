@@ -1,6 +1,7 @@
 package fpinscala.applicative
 
 import fpinscala.monads.{Functor, fp11}
+import fpinscala.monoids.fp10
 
 import scala.collection.immutable
 
@@ -129,6 +130,16 @@ object fp12 {
   }
 
   object ApplicativeApp extends App {
+
+    //12.15
+    case class Iteration[A](a: A, f: A => A, n: Int) {
+      def foldMap[B](g: A => B)(M: fp10.Monoid[B]): B = {
+        def iterate(n: Int, b: B, c: A): B =
+          if (n <= 0) b else iterate(n - 1, g(c), f(a))
+
+        iterate(n, M.zero, a)
+      }
+    }
 
     def goodStrings(elements: List[String], len: Int): List[String] = {
       if (len == 0) {
