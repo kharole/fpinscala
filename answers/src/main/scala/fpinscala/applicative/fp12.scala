@@ -2,8 +2,7 @@ package fpinscala.applicative
 
 import fpinscala.monads.{Functor, fp11}
 import fpinscala.monoids.fp10
-
-import scala.collection.immutable
+import fpinscala.state.State
 
 object fp12 {
 
@@ -73,6 +72,35 @@ object fp12 {
       //12.14
       def map[A, B](fa: F[A])(f: A => B): F[B] = traverse(fa)(a => Id(f(a))).value
 
+      def traverseS[S, A, B](fa: F[A])(f: A => State[S, B]): State[S, F[B]] =
+        traverse[({type f[x] = State[S, x]})#f, A, B](fa)(f)(stateMonad)
+
+      def mapAccum[S, A, B](fa: F[A], s: S)(f: (A, S) => (B, S)): (F[B], S) =
+        traverseS(fa)((a: A) => for {
+          s1 <- State.get[S]
+          (b, s2) = f(a, s1)
+          _ <- State.set(s2)
+        } yield b).run(s)
+
+      def toList[A](fa: F[A]): List[A] =
+        mapAccum(fa, List[A]())((a, as) => ((), a :: as))._2.reverse
+
+      def zipWithIndex[A](fa: F[A]): F[(A, Int)] = {
+        mapAccum(fa, 0)((a, i) => ((a, i), i + 1))._1
+      }
+
+      //12.16
+      def reverse[A](fa: F[A]): F[A] = {
+        mapAccum(fa, toList(fa).reverse)((_, s) => (s.head, s.tail))._1
+      }
+
+    }
+
+    def stateMonad[S] = new Applicative[({type f[x] = State[S, x]})#f] {
+      def unit[A](a: => A): State[S, A] = State(s => (a, s))
+
+      def map2[A, B, C](sta: State[S, A], stb: State[S, B])(f: (A, B) => C): State[S, C] =
+        sta.map2(stb)(f)
     }
 
     //12.13
