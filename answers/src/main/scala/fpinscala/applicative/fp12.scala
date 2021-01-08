@@ -55,7 +55,7 @@ object fp12 {
           Applicative.this.map2(fa, fb)((ga, gb) => G.map2(ga, gb)(f))
       }
 
-    trait Traverse[F[_]] {
+    trait Traverse[F[_]] { self =>
       def traverse[G[_] : Applicative, A, B](fa: F[A])(f: A => G[B]): G[F[B]] =
         ???
 
@@ -104,6 +104,17 @@ object fp12 {
         traverse[({type f[x] = (G[x], H[x])})#f, A, B](fa)(a => (f(a), g(a)))(G product H)
       }
 
+      //12.19
+      def compose[Z[_]](implicit Z: Traverse[Z]): Traverse[({type f[x] = F[Z[x]]})#f] =
+        new Traverse[({type f[x] = F[Z[x]]})#f] {
+
+          override def traverse[G[_] : Applicative, A, B](fa: F[Z[A]])(f: A => G[B]): G[F[Z[B]]] =
+            self.traverse(fa)((ga: Z[A]) => Z.traverse(ga)(f))
+
+          override def sequence[G[_] : Applicative, A](fga: F[Z[G[A]]]): G[F[Z[A]]] = ???
+        }
+
+      //12.20 skip
     }
 
     def stateMonad[S] = new Applicative[({type f[x] = State[S, x]})#f] {
