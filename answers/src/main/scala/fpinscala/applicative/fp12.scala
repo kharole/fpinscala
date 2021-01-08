@@ -97,6 +97,13 @@ object fp12 {
       //12.17
       def foldLeft[A, B](fa: F[A], z: B)(op: (B, A) => B): B =
         mapAccum(fa, z)((a, s) => ((), op(s, a)))._2
+
+      //12.18
+      def fuse[G[_], H[_], A, B](fa: F[A])(f: A => G[B], g: A => H[B])
+                                (G: Applicative[G], H: Applicative[H]): (G[F[B]], H[F[B]]) = {
+        traverse[({type f[x] = (G[x], H[x])})#f, A, B](fa)(a => (f(a), g(a)))(G product H)
+      }
+
     }
 
     def stateMonad[S] = new Applicative[({type f[x] = State[S, x]})#f] {
