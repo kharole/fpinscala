@@ -94,6 +94,9 @@ object fp12 {
         mapAccum(fa, toList(fa).reverse)((_, s) => (s.head, s.tail))._1
       }
 
+      //12.17
+      def foldLeft[A, B](fa: F[A], z: B)(op: (B, A) => B): B =
+        mapAccum(fa, z)((a, s) => ((), op(s, a)))._2
     }
 
     def stateMonad[S] = new Applicative[({type f[x] = State[S, x]})#f] {
