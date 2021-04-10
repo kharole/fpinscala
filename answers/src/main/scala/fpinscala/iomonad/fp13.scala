@@ -1,6 +1,7 @@
 package fpinscala.iomonad
 
 import fpinscala.iomonad
+import fpinscala.parallelism.Nonblocking.Par
 
 object fp13 {
 
@@ -40,4 +41,60 @@ object fp13 {
     case IO3.FlatMap(IO3.FlatMap(x, f), g) => step(x flatMap (a => f(a) flatMap g))
     case _ => a
   }
+
+  sealed trait Console[A] {
+    def toPar: Par[A]
+
+    def toThunk: () => A
+  }
+
+  case object ReadLine extends Console[Option[String]] {
+    def toPar = Par.lazyUnit(run)
+
+    def toThunk = () => run
+
+    def run: Option[String] =
+      try Some(readLine())
+      catch {
+        case e: Exception => None
+      }
+  }
+
+  case class PrintLine(line: String) extends Console[Unit] {
+    def toPar = Par.lazyUnit(println(line))
+
+    def toThunk = () => println(line)
+  }
+
+  trait Translate[F[_], G[_]] {
+    def apply[A](f: F[A]): G[A]
+  }
+
+  type ~>[F[_], G[_]] = Translate[F, G]
+
+  def runFree[F[_], G[_], A](free: Free[F, A])(t: F ~> G)(
+    implicit G: Monad[G]): G[A] =
+    step(free) match {
+      case IO3.Return(a) => G.unit(a)
+      case IO3.Suspend(r) => t(r)
+      case IO3.FlatMap(IO3.Suspend(r), f) => G.flatMap(t(r))(a => runFree(f(a))(t))
+      case _ => sys.error("Impossible; `step` eliminates these cases")
+    }
+
+  //13.4
+  def translate[F[_],G[_],A](f: Free[F,A])(fg: F ~> G): Free[G,A] = {
+    type FreeG[A] = Free[G,A]
+    val t = new (F ~> FreeG) {
+      def apply[A](a: F[A]): Free[G,A] = IO3.Suspend { fg(a) }
+    }
+    runFree(f)(t)(freeMonad[G])
+  }
+
+  def runConsole[A](a: Free[Console,A]): A =
+    runTrampoline { translate(a)(new (Console ~> Function0) {
+      def apply[A](c: Console[A]) = c.toThunk
+    })}
+
+
+
 }
