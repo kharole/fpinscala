@@ -66,18 +66,14 @@ object fp14 {
             }
         }
 
+        private def get: ST[S, Array[A]] = ST(value)
+
         def read(i: Int): ST[S, A] = ST(value(i))
 
         def freeze: ST[S, List[A]] = ST(value.toList)
 
-        def fill(xs: Map[Int, A]): ST[S, Unit] = {
-            if (xs.size == 0)
-                ST(())
-            else for {
-                _ <- write(xs.head._1, xs.head._2)
-                _ <- fill(xs.tail)
-            } yield ()
-        }
+        def fill(xs: Map[Int, A]): ST[S, Unit] =
+            xs.foldLeft(ST[S, Unit](()))((a, e) => a.flatMap(_ => write(e._1, e._2)))
     }
 
     object STArray {
